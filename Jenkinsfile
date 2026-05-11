@@ -1,67 +1,78 @@
-
 pipeline {
-
     agent any
+
+    environment {
+        APP_NAME = "flask-app"
+        STAGING_URL = "http://192.168.56.10:5000"
+    }
 
     stages {
 
         stage('Checkout') {
-
             steps {
-
-                echo 'Recuperation du code...'
-
                 checkout scm
-
             }
+        }
 
+        stage('Unit Tests') {
+            steps {
+                sh 'pytest tests/'
+            }
         }
 
         stage('Build Docker Image') {
-
             steps {
-
-                sh 'docker build -t flask-app .'
-
+                sh 'docker build -t ${APP_NAME}:${BUILD_NUMBER} .'
             }
-
         }
 
-        stage('Deploy') {
-
+        stage('Container Security Scan') {
             steps {
-
-                sh 'docker stop flask-app || true'
-
-                sh 'docker rm flask-app || true'
-
-                sh 'docker run -d --name flask-app -p 5000:5000 flask-app'
-
+                sh 'trivy image ${APP_NAME}:${BUILD_NUMBER}'
             }
-
         }
 
-        stage('Verify') {
-
+        stage('Deploy Staging') {
             steps {
+                sh 'docker stop staging-app || true'
+                sh 'docker rm staging-app || true'
 
+                sh '''
+                    docker run -d \
+                    --name staging-app \
+                    -p 5000:5000 \
+                    ${APP_NAME}:${BUILD_NUMBER}
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
                 sh 'sleep 5'
-
-                sh 'curl -f http://192.168.56.10:5000/health'
-
+                sh 'curl -f ${STAGING_URL}/health'
             }
+        }
 
+        stage('OWASP ZAP Scan') {
+            steps {
+                sh '''
+                    docker run --rm \
+                    --network host \
+                    -v $(pwd):/zap/wrk/:rw \
+                    ghcr.io/zaproxy/zaproxy:stable \
+                    zap-baseline.py \
+                    -t ${STAGING_URL} \
+                    -r zap-report.html \
+                    -l WARN
+                '''
+            }
+        }
+
+        stage('Deploy Production') {
+            steps {
+                echo "Validation OK, production deploy"
+            }
         }
 
     }
-
-    post {
-
-        success { echo 'Deploiement reussi !' }
-
-        failure { echo 'Echec du pipeline !' }
-
-    }
-
 }
-
