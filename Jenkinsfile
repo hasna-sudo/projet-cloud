@@ -12,6 +12,11 @@ pipeline {
                 checkout scm
             }
         }
+        stage('Tests') {
+            steps {
+                sh 'python3 -m pytest test_app.py -v'
+            }
+        }
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t ${APP_NAME} .'
