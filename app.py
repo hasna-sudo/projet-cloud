@@ -5,6 +5,11 @@ import os
 import hashlib
 
 app = Flask(__name__)
+try:
+    from prometheus_flask_exporter import PrometheusMetrics
+    metrics = PrometheusMetrics(app)
+except Exception:
+    pass
 app.secret_key = 'securecloud-secret-2025'
 DB = '/app/data/platform.db'
 
