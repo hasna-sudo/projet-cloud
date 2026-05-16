@@ -4,6 +4,7 @@ pipeline {
         APP_NAME = "flask-app"
         APP_PORT = "5000"
         DATA_PATH = "/home/vagrant/app/data"
+        VM_IP = "192.168.56.10"
     }
     stages {
         stage('Checkout') {
@@ -26,7 +27,7 @@ pipeline {
         stage('Verify') {
             steps {
                 sh 'sleep 5'
-                sh 'curl -f http://localhost:${APP_PORT}/health'
+                sh 'curl -f http://${VM_IP}:${APP_PORT}/health'
             }
         }
     }
