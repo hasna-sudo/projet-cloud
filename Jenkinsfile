@@ -13,7 +13,8 @@ pipeline {
         }
         stage('Tests') {
             steps {
-                sh 'docker run --rm -v $(pwd):/app -w /app python:3.11-slim sh -c "pip install flask pytest -q && python -m pytest test_app.py -v"'
+                sh 'pip install flask pytest -q || true'
+                sh 'python3 -m pytest test_app.py -v || python -m pytest test_app.py -v'
             }
         }
         stage('Build Docker Image') {
